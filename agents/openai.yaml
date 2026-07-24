@@ -1,0 +1,9 @@
+interface:
+  display_name: "海报手抄报图文文档"
+  short_description: "制作海报、手抄报、作业展示板、文章配图和知识图解。"
+  icon: "image"
+  primary_color: "#E9DDC8"
+  brand_color: "#E9DDC8"
+  default_prompt: "使用 $海报手抄报图文文档，把这篇中文文章或学生作业做成海报、手抄报或图文配图。若我没有明确指定有效风格，普通配图先调用 Visualize:visualize 展示交互选择器；学生手抄报先确认年龄、主题、重点、纸张和语言，再选择结构模板与线稿文字保留方式。"
+policy:
+  allow_implicit_invocation: true
