@@ -36,6 +36,9 @@
 4. 最想表达的重点。
 5. 纸张尺寸与横竖方向。
 6. 语言：中文版、英文版或中英分别生成。
+7. 线稿文字保留方式：灰度全部文字、只带主标题、带主标题和小标题、完全无文字。
+
+线稿文字保留方式是手抄报任务的必选项。优先通过第二阶段选择器的必选控件让用户选；如果选择器不可用、用户跳过选择器、或收到的 `CC2IMAGE_HANDCOPY_SELECTION_V1` 缺少 `tracing_text_mode`，必须暂停生成并用一句话让用户选择四档之一，不得自行采用默认值。
 
 信息齐备后，先输出简短任务理解卡：
 
@@ -47,6 +50,7 @@
 纸张：
 语言：
 计划产物：
+线稿文字：
 ```
 
 任务理解卡只用于对齐内容，不替代后续视觉方案选择。若用户已明确授权按推荐继续，不再要求额外文字确认，直接进入第二阶段。
@@ -120,9 +124,9 @@ python3 <SKILL_ROOT>/scripts/build_handcopy_selector.py --stdin-config --output-
 {"recommend":[{"layout_id":"curved_narrative","style_id":"minimal_line_art","title":"曲线时间线","reason":"用一条曲线和四个节点讲清阶段"},{"layout_id":"central_growth","style_id":"handdrawn_knowledge_card","title":"中心思维图","reason":"从一个简笔符号向外展开知识点"},{"layout_id":"scene_journey","style_id":"editorial_line_character","title":"路径讲解图","reason":"用简化路线、编号和关键词引导阅读"}],"age_band":"初中","language":"zh","paper_size":"A3","orientation":"landscape"}
 ```
 
-选择器展示三张仓库现有风格示例图、三套具体构图说明，并允许确认更多结构模板、语言、纸张、方向和线稿文字保留方式。展示选择器的同一轮禁止调用 `image_gen`。
+选择器展示三张仓库现有风格示例图、三套具体构图说明，并允许确认更多结构模板、语言、纸张、方向和线稿文字保留方式。线稿文字保留控件必须醒目出现，提交协议必须包含 `tracing_text_mode`。展示选择器的同一轮禁止调用 `image_gen`。
 
-收到 `CC2IMAGE_HANDCOPY_SELECTION_V1` 后校验字段并继续，不再打开普通风格选择器。
+收到 `CC2IMAGE_HANDCOPY_SELECTION_V1` 后校验字段并继续，不再打开普通风格选择器。若配置块缺少 `tracing_text_mode`，视为无效选择，先让用户补选线稿文字保留方式。
 
 ## 尺寸
 

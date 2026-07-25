@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -112,6 +113,7 @@ class HandcopySelectorTests(unittest.TestCase):
             "对比桥梁型",
             "四季/阶段花环型",
             "线稿文字保留",
+            "选择线稿文字保留方式",
             "灰度全部文字",
             "只带主标题",
             "带主标题和小标题",
@@ -120,6 +122,13 @@ class HandcopySelectorTests(unittest.TestCase):
             "tracing_text_mode=",
         ]:
             self.assertIn(text, fragment)
+        self.assertIn('class="tracing-panel"', fragment)
+        self.assertEqual(
+            len(re.findall(r'<input type="radio" name="tracing-text-mode"', fragment)),
+            4,
+        )
+        self.assertIn('value="blank_structure" checked', fragment)
+        self.assertNotIn("handcopy-tracing-text", fragment)
         self.assertNotIn("线稿文字区", fragment)
         self.assertNotIn("\ntext_mode=", fragment)
         self.assertNotIn("保留范文", fragment)

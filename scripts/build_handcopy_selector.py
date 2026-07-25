@@ -148,6 +148,16 @@ def layout_options(selected: str) -> str:
     return select_options(LAYOUT_NAMES, selected)
 
 
+def radio_options(values: dict[str, str], selected: str) -> str:
+    return "\n".join(
+        f'''<label class="choice-row">
+  <input type="radio" name="tracing-text-mode" value="{html.escape(value)}"{" checked" if value == selected else ""}>
+  <span>{html.escape(label)}</span>
+</label>'''
+        for value, label in values.items()
+    )
+
+
 def build_fragment(payload: dict) -> str:
     payload = validate_config(payload)
     cards = []
@@ -176,11 +186,16 @@ def build_fragment(payload: dict) -> str:
   #cc2image-handcopy-selector .concept-card[aria-pressed="true"] {{ border-color: color-mix(in oklab, var(--primary) 64%, var(--border) 36%); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 46%, transparent); }}
   #cc2image-handcopy-selector .fields {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }}
   #cc2image-handcopy-selector .field {{ display: grid; gap: 7px; }}
+  #cc2image-handcopy-selector .tracing-panel {{ border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border) 60%); border-radius: 8px; padding: 14px; background: color-mix(in oklab, var(--primary) 9%, transparent); }}
+  #cc2image-handcopy-selector .tracing-options {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }}
+  #cc2image-handcopy-selector .choice-row {{ display: flex; align-items: center; gap: 8px; min-height: 34px; color: var(--foreground); }}
+  #cc2image-handcopy-selector .choice-row input {{ inline-size: 16px; block-size: 16px; accent-color: var(--primary); }}
   #cc2image-handcopy-selector .summary {{ margin: 0; color: var(--muted-foreground); }}
   #cc2image-handcopy-selector .status {{ min-height: 1.4em; margin: 0; }}
   @media (max-width: 620px) {{
     #cc2image-handcopy-selector .concepts,
-    #cc2image-handcopy-selector .fields {{ grid-template-columns: 1fr; }}
+    #cc2image-handcopy-selector .fields,
+    #cc2image-handcopy-selector .tracing-options {{ grid-template-columns: 1fr; }}
   }}
 </style>
 
@@ -218,11 +233,14 @@ def build_fragment(payload: dict) -> str:
       {layout_options(selected["layout_id"])}
     </select>
   </label>
-  <label class="field">线稿文字保留
-    <select id="handcopy-tracing-text" class="form-select">
-      {select_options(TRACING_TEXT_MODES, "blank_structure")}
-    </select>
-  </label>
+</section>
+
+<section class="tracing-panel" aria-labelledby="handcopy-tracing-heading">
+  <h3 id="handcopy-tracing-heading">选择线稿文字保留方式</h3>
+  <p class="summary">这是必选项：决定线条临摹参考版里保留哪些文字。无论选哪一档，线稿都只使用浅灰色线条和浅灰文字。</p>
+  <div class="tracing-options">
+    {radio_options(TRACING_TEXT_MODES, "blank_structure")}
+  </div>
 </section>
 
 <p class="summary">固定产物：彩绘完成版 + 线条临摹参考版</p>
@@ -241,7 +259,6 @@ def build_fragment(payload: dict) -> str:
   const paper = root.querySelector('#handcopy-paper');
   const orientation = root.querySelector('#handcopy-orientation');
   const layout = root.querySelector('#handcopy-layout');
-  const tracingText = root.querySelector('#handcopy-tracing-text');
   const summary = root.querySelector('#handcopy-summary');
   const submit = root.querySelector('#handcopy-submit');
   const status = root.querySelector('#handcopy-status');
@@ -249,10 +266,13 @@ def build_fragment(payload: dict) -> str:
   let selectedStyle = {json.dumps(selected["style_id"], ensure_ascii=False)};
   let selectedTitle = {json.dumps(selected["title"], ensure_ascii=False)};
 
+  const selectedTracingText = () => root.querySelector('input[name="tracing-text-mode"]:checked');
   const update = () => {{
     cards.forEach(card => card.setAttribute('aria-pressed', String(card.dataset.layoutId === selectedLayout)));
     layout.value = selectedLayout;
-    summary.textContent = `${{selectedTitle}} · ${{layout.options[layout.selectedIndex].text}} · ${{tracingText.options[tracingText.selectedIndex].text}} · ${{age.value}} · ${{language.options[language.selectedIndex].text}} · ${{paper.value}} · ${{orientation.options[orientation.selectedIndex].text}}`;
+    const tracing = selectedTracingText();
+    const tracingLabel = tracing ? tracing.closest('label').innerText.trim() : '未选择线稿文字';
+    summary.textContent = `${{selectedTitle}} · ${{layout.options[layout.selectedIndex].text}} · ${{tracingLabel}} · ${{age.value}} · ${{language.options[language.selectedIndex].text}} · ${{paper.value}} · ${{orientation.options[orientation.selectedIndex].text}}`;
   }};
   cards.forEach(card => card.addEventListener('click', () => {{
     selectedLayout = card.dataset.layoutId;
@@ -265,9 +285,15 @@ def build_fragment(payload: dict) -> str:
     selectedTitle = layout.options[layout.selectedIndex].text;
     update();
   }});
-  [age, language, paper, orientation, tracingText].forEach(control => control.addEventListener('change', update));
+  [age, language, paper, orientation, layout].forEach(control => control.addEventListener('change', update));
+  root.querySelectorAll('input[name="tracing-text-mode"]').forEach(control => control.addEventListener('change', update));
   submit.addEventListener('click', async () => {{
-    const prompt = `继续当前 cc2image 学生手抄报任务，不要再次打开选择器。\nCC2IMAGE_HANDCOPY_SELECTION_V1\nlayout_id=${{selectedLayout}}\nstyle_id=${{selectedStyle}}\nage_band=${{age.value}}\nlanguage=${{language.value}}\npaper_size=${{paper.value}}\norientation=${{orientation.value}}\ntracing_text_mode=${{tracingText.value}}\noutputs=colored_and_tracing\nskip_selector=true\nEND_CC2IMAGE_HANDCOPY_SELECTION`;
+    const tracing = selectedTracingText();
+    if (!tracing) {{
+      status.textContent = '请先选择线稿文字保留方式。';
+      return;
+    }}
+    const prompt = `继续当前 cc2image 学生手抄报任务，不要再次打开选择器。\nCC2IMAGE_HANDCOPY_SELECTION_V1\nlayout_id=${{selectedLayout}}\nstyle_id=${{selectedStyle}}\nage_band=${{age.value}}\nlanguage=${{language.value}}\npaper_size=${{paper.value}}\norientation=${{orientation.value}}\ntracing_text_mode=${{tracing.value}}\noutputs=colored_and_tracing\nskip_selector=true\nEND_CC2IMAGE_HANDCOPY_SELECTION`;
     submit.disabled = true;
     submit.textContent = '正在提交…';
     status.textContent = '';
