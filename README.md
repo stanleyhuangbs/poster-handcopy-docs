@@ -452,7 +452,7 @@ npx skills add stanleyhuangbs/poster-handcopy-docs --agent codex --global --yes
 也可以手动克隆到本地 Skills 目录：
 
 ```bash
-git clone https://github.com/stanleyhuangbs/poster-handcopy-docs.git ~/.agents/skills/海报手抄报图文文档
+git clone https://github.com/stanleyhuangbs/poster-handcopy-docs.git ~/.agents/skills/poster-handcopy-docs
 ```
 
 ## 使用示例
